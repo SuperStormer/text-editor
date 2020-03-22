@@ -4,7 +4,7 @@ enum class Key : int {
 	CTRL_C = 3,
 	CTRL_S = 19,
 
-	ESCAPE_START = 27,
+	ESCAPE_START = '\033',
 	// ansi escape codes
 	ARROW_UP = 'A',
 	ARROW_DOWN = 'B',

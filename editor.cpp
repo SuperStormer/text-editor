@@ -58,27 +58,42 @@ void Editor::handle_escape() {
 void Editor::handle_arrow_up() {
 	if (curr_line > 0) {
 		curr_line--;
+		if (col > lines[curr_line].size() + 1) {
+			col = lines[curr_line].size() + 1;
+		}
 	}
 }
 void Editor::handle_arrow_down() {
-	if (curr_line < lines.size() + 1) {
+	if (curr_line < lines.size() - 1) {
 		curr_line++;
+		if (col > lines[curr_line].size() + 1) {
+			col = lines[curr_line].size() + 1;
+		}
 	}
 }
 void Editor::handle_arrow_left() {
 	if (col > 1) {
 		col--;
+	} else if (curr_line > 0) {
+		curr_line--;
+		col = lines[curr_line].size() + 1;
 	}
 }
 void Editor::handle_arrow_right() {
 	if (col < lines[curr_line].size() + 1) {
 		col++;
+	} else if (curr_line < lines.size() - 1) {
+		curr_line++;
+		col = 1;
 	}
 }
 void Editor::handle_backspace() {
 	if (col == 1) {
 		if (curr_line > 0) {
+			col = lines[curr_line - 1].size() + 1;
 			lines[curr_line - 1].append(lines[curr_line]);
+			lines.erase(lines.begin() + curr_line);
+			curr_line--;
 		}
 	} else {
 		lines[curr_line].erase(col - 2, 1);
@@ -86,7 +101,13 @@ void Editor::handle_backspace() {
 	}
 }
 void Editor::handle_enter() {
-	// TODO
+	auto& line = lines[curr_line];
+	auto start = line.begin() + col - 1;
+	std::string new_line = std::string(start, line.end());
+	line.erase(start, line.end());
+	lines.insert(lines.begin() + curr_line + 1, new_line);
+	curr_line++;
+	col = 1;
 }
 void Editor::handle_key(Key key) {
 	// std::cout << static_cast<int>(key);
@@ -122,7 +143,7 @@ void Editor::display() {
 	for (const auto& line : lines) {
 		std::cout << line << "\n";
 	}
-	std::cout << "\033[" << curr_line << ";" << col << "f";
+	std::cout << "\033[" << curr_line + 1 << ";" << col << "f";
 }
 
 void Editor::disable_raw_mode() {
