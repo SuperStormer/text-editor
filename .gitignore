@@ -1,8 +1,9 @@
 compile_commands.json
 .vscode
-x.txt
-*.o
-texteditor
 .clang-format
 .clang-tidy
 .clangd
+x.txt
+*.o
+texteditor
+texteditor.exe

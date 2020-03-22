@@ -4,12 +4,17 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "key.h"
+#if defined(unix) || defined(__unix__) || defined(__unix)
 #include "termios.h"
 #include "unistd.h"
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
 Editor::Editor(const std::string& filename, const std::vector<std::string>& args) : filename{filename} {
 	std::ifstream input{filename};
 	for (std::string line; std::getline(input, line);) {
@@ -147,11 +152,17 @@ void Editor::display() {
 }
 
 void Editor::disable_raw_mode() {
+#if defined(unix) || defined(__unix__) || defined(__unix)
 	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
 		throw std::runtime_error{"tcsetattr returned -1"};
 	}
+#elif defined(_WIN32)
+	HANDLE h_stdin = GetStdHandle(STD_INPUT_HANDLE);
+	SetConsoleMode(h_stdin, orig_console_mode);
+#endif
 }
 void Editor::enable_raw_mode() {
+#if defined(unix) || defined(__unix__) || defined(__unix)
 	if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
 		throw std::runtime_error{"tcgetattr returned -1"};
 	}
@@ -165,4 +176,11 @@ void Editor::enable_raw_mode() {
 	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
 		throw std::runtime_error{"tcsetattr returned -1"};
 	}
+#elif defined(_WIN32)
+	HANDLE h_stdin = GetStdHandle(STD_INPUT_HANDLE);
+	GetConsoleMode(h_stdin, (LPDWORD)&orig_console_mode);
+	DWORD raw = orig_console_mode;
+	raw &= ~(ENABLE_ECHO_INPUT | ENABLE_INSERT_MODE | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+	SetConsoleMode(h_stdin, raw);
+#endif
 }

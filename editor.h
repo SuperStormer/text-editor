@@ -6,7 +6,11 @@
 #include <vector>
 
 #include "key.h"
+#if defined(unix) || defined(__unix__) || defined(__unix)
 #include "termios.h"
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
 class Editor;
 using KeyHandler = void (Editor::*)();
 class Editor {
@@ -47,6 +51,10 @@ class Editor {
 		const static KeyBinds default_binds;
 	};
 	KeyBinds keybinds{KeyBinds::default_binds};
+#if defined(unix) || defined(__unix__) || defined(__unix)
 	struct termios orig_termios;
+#elif defined(_WIN32)
+	DWORD orig_console_mode;
+#endif
 };
 #endif
