@@ -1,14 +1,15 @@
-#include "editor.h"
+#include "editor.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <exception>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <vector>
 
-#include "key.h"
+#include "key.hpp"
+#include "utils.hpp"
 #if defined(unix) || defined(__unix__) || defined(__unix)
 #include "termios.h"
 #include "unistd.h"
@@ -45,7 +46,7 @@ void Editor::update() {
 	auto key_handler = keybinds.keybinds.find(key);
 	if (key_handler != keybinds.keybinds.end()) {
 		(this->*(*key_handler).second)();
-	} else if (std::isprint(static_cast<int>(key)) != 0) {
+	} else if (std::isprint(static_cast<int>(key)) != 0 || static_cast<char>(key) == '\t') {
 		handle_key(key);
 	} else if (key == Key::ESCAPE_START) {
 		handle_escape();
@@ -115,7 +116,7 @@ void Editor::handle_enter() {
 	col = 1;
 }
 void Editor::handle_key(Key key) {
-	// std::cout << static_cast<int>(key);
+	std::cout << static_cast<int>(key);
 	if (col == 0) {
 		lines[curr_line].insert(0, 1, static_cast<char>(key));
 		col++;
@@ -144,11 +145,15 @@ const Editor::KeyBinds Editor::KeyBinds::default_binds{{{Key::CTRL_C, &Editor::q
 														{Key::ARROW_LEFT, &Editor::handle_arrow_left},
 														{Key::ARROW_RIGHT, &Editor::handle_arrow_right}}};
 void Editor::display() {
+	int tab_size = 4;  // TODO read this from a config file
 	std::cout << "\033[2J\033[H";
-	for (const auto& line : lines) {
-		std::cout << line << "\n";
+	for (const std::string& line : lines) {
+		std::cout << replace_all(line, "\t", std::string(tab_size, ' ')) << "\n";
 	}
-	std::cout << "\033[" << curr_line + 1 << ";" << col << "f";
+	std::string line = lines[curr_line];
+	// fix cols b/c tabs displayed as spaces in output messes up
+	size_t tabs = std::count(line.begin(), line.begin() + col - 1, '\t');
+	std::cout << "\033[" << curr_line + 1 << ";" << col + tabs * (tab_size - 1) << "f";
 }
 
 void Editor::disable_raw_mode() {

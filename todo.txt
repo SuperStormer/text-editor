@@ -1,3 +1,4 @@
 1. fix display for files that are larger than terminal window
 2. copy/paste
 3. find/replace
+4. home,end,delete keys

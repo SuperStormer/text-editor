@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "editor.h"
+#include "editor.hpp"
 
 int main(int argc, const char** argv) {
 	if (argc < 2) {

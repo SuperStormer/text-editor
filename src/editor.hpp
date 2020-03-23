@@ -1,11 +1,10 @@
 #ifndef EDITOR_H
 #define EDITOR_H
-#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "key.h"
+#include "key.hpp"
 #if defined(unix) || defined(__unix__) || defined(__unix)
 #include "termios.h"
 #elif defined(_WIN32)
