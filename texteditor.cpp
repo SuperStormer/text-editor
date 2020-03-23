@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -10,7 +12,8 @@ int main(int argc, const char** argv) {
 		exit(1);
 	}
 	std::string filename = argv[1];
-	if (filename.find_first_of("\\/\f") != std::string::npos || filename[0] == '-') {
+	if (filename.find_first_of("*?|\"") != std::string::npos || filename[0] == '-' ||
+		std::find_if(filename.begin(), filename.end(), iscntrl) != filename.end()) {
 		std::cerr << "Invalid filename" << std::endl;
 		exit(1);
 	}
