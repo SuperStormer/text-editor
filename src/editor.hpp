@@ -1,9 +1,13 @@
 #ifndef EDITOR_H
 #define EDITOR_H
+#include <memory>
+#include <stack>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
+//#include "action.hpp"
 #include "key.hpp"
 #if defined(unix) || defined(__unix__) || defined(__unix)
 #include "termios.h"
@@ -34,15 +38,21 @@ class Editor {
 	void quit();
 	void save();
 	void display();
+	void move_up();
+	void move_down();
+	// void push_action(std::shared_ptr<Action> action);
 	void disable_raw_mode();
 	void enable_raw_mode();
+	std::pair<int, int> get_terminal_size();
 
    private:
+	size_t window_start{0};
 	size_t curr_line{0};
 	size_t col{1};
 	bool done{false};
 	std::string filename;
 	std::vector<std::string> lines{};
+	// std::stack<std::shared_ptr<Action>> actions{};
 	struct KeyBinds {
 		KeyBinds(std::unordered_map<Key, KeyHandler> keybinds, std::unordered_map<Key, KeyHandler> escape_handlers);
 		std::unordered_map<Key, KeyHandler> keybinds;
