@@ -10,6 +10,7 @@
 #include <tuple>
 #include <vector>
 
+#include "action.hpp"
 #include "key.hpp"
 #include "utils.hpp"
 #if defined(unix) || defined(__unix__) || defined(__unix)
@@ -31,6 +32,9 @@ Editor::Editor(const std::string& filename, const std::vector<std::string>& args
 Editor::~Editor() {
 	save();
 	disable_raw_mode();
+	while (!actions.empty()) {
+		actions.pop();
+	}
 	std::cout << "\033[2J\033[H";
 }
 void Editor::start() {
@@ -100,44 +104,46 @@ void Editor::handle_backspace() {
 	if (col == 1) {
 		if (curr_line > 0) {
 			std::string removed_line{lines[curr_line]};
-			col = lines[curr_line - 1].size() + 1;
-			lines[curr_line - 1].append(lines[curr_line]);
+			col = lines[curr_line - 1].size();
+			/*lines[curr_line - 1].append(lines[curr_line]);
 			lines.erase(lines.begin() + curr_line);
+			move_up();*/
 			move_up();
-			/*move_up();
-			Remove action = Remove(curr_line, col, std::vector<std::string>{removed_line});
-			std::tie(curr_line, col) = action(lines);
-			push_action(std::shared_ptr<Remove>{&action});*/
+			perform_action(Remove(curr_line, col, std::vector<std::string>{"", ""}));
+			col++;
 		}
 	} else {
 		char removed_char = lines[curr_line][col - 2];
-		lines[curr_line].erase(col - 2, 1);
-		col--;
+		// lines[curr_line].erase(col - 2, 1);
+		perform_action(Remove(curr_line, col - 1, std::vector<std::string>{std::string(1, removed_char)}));
+		// col--;
 		// push_action(std::make_shared<Remove>(curr_line, col, std::vector<std::string>{std::string(1, removed_char)}));
 	}
 }
 void Editor::handle_enter() {
-	auto& line = lines[curr_line];
+	perform_action(Add(curr_line, col, std::vector<std::string>{"", ""}));
+	/*auto& line = lines[curr_line];
 	auto start = line.begin() + col - 1;
 	std::string new_line = std::string(start, line.end());
 	line.erase(start, line.end());
 	lines.insert(lines.begin() + curr_line + 1, new_line);
-	// push_action(std::make_shared<Add>(curr_line, col - 1, std::vector<std::string>{"", ""}));
+	push_action(std::make_shared<Add>(curr_line, col, std::vector<std::string>{"", ""}));
 	move_down();
-	col = 1;
+	col = 1;*/
 }
 void Editor::handle_key(Key key) {
 	// std::cout << static_cast<int>(key);
 	char chr = static_cast<char>(key);
-	if (col == 0) {
+	perform_action(Add(curr_line, col, std::vector<std::string>{std::string(1, chr)}));
+
+	/*if (col == 0) {
 		lines[curr_line].insert(0, 1, chr);
-		// push_action(std::make_shared<Add>(curr_line, 0, std::vector<std::string>{std::string(1, chr)}));
 		col++;
 	} else {
 		lines[curr_line].insert(col - 1, 1, chr);
-		// push_action(std::make_shared<Add>(curr_line, col - 1, std::vector<std::string>{std::string(1, chr)}));
+		push_action(std::make_shared<Add>(curr_line, col - 1, std::vector<std::string>{std::string(1, chr)}));
 	}
-	col++;
+	col++;*/
 }
 void Editor::quit() {
 	done = true;
@@ -148,10 +154,30 @@ void Editor::save() {
 		output << line << "\n";
 	}
 }
+void Editor::redo() {
+	if (!undos.empty()) {
+		std::shared_ptr<Action> action = undos.top();
+		undos.pop();
+		std::shared_ptr<Action> new_action = action->reverse();
+		std::tie(curr_line, col) = (*new_action)(lines);
+		actions.push(new_action);
+	}
+}
+void Editor::undo() {
+	if (!actions.empty()) {
+		std::shared_ptr<Action> action = actions.top();
+		actions.pop();
+		std::shared_ptr<Action> new_action = action->reverse();
+		std::tie(curr_line, col) = (*new_action)(lines);
+		undos.push(new_action);
+	}
+}
 Editor::KeyBinds::KeyBinds(std::unordered_map<Key, KeyHandler> keybinds, std::unordered_map<Key, KeyHandler> escape_handlers)
 	: keybinds(std::move(keybinds)), escape_handlers(std::move(escape_handlers)) {}
 const Editor::KeyBinds Editor::KeyBinds::default_binds{{{Key::CTRL_C, &Editor::quit},
 														{Key::CTRL_S, &Editor::save},
+														{Key::CTRL_Y, &Editor::redo},
+														{Key::CTRL_Z, &Editor::undo},
 														{Key::BACKSPACE, &Editor::handle_backspace},
 														{Key::ENTER, &Editor::handle_enter}},
 													   {{Key::ARROW_UP, &Editor::handle_arrow_up},
@@ -188,14 +214,24 @@ inline void Editor::move_down() {
 	}
 	curr_line++;
 }
-/*void Editor::push_action(std::shared_ptr<Action> action) {
-	std::clog << typeid(*action).name() << " " << action->line << " " << action->col << "'";
-	for (auto line : action->lines) {
+template <typename T>
+void Editor::perform_action(T&& action) {
+	clear_undos();
+	std::tie(curr_line, col) = action(lines);
+	push_action(std::make_shared<T>(action));
+}
+void Editor::push_action(const std::shared_ptr<Action>& action) {
+	/*std::clog << typeid(*action).name() << " " << actio	n->line << " " << action->col << "'";
+	for (const auto& line : action->lines) {
 		std::clog << line << "\n";
 	}
-	std::clog << "'";
+	std::clog << "'\n";*/
+
 	actions.push(action);
-}*/
+}
+inline void Editor::clear_undos() {
+	std::stack<std::shared_ptr<Action>>().swap(undos);
+}
 void Editor::disable_raw_mode() {
 #if defined(unix) || defined(__unix__) || defined(__unix)
 	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {

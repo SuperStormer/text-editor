@@ -1,3 +1,5 @@
+#include "utils.hpp"
+
 #include <string>
 // from https://stackoverflow.com/a/24315631/7941251
 std::string replace_all(std::string str, const std::string& search, const std::string& replace) {

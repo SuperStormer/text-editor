@@ -3,7 +3,8 @@
 enum class Key : int {
 	CTRL_C = 3,
 	CTRL_S = 19,
-
+	CTRL_Y = 25,
+	CTRL_Z = 26,
 	ESCAPE_START = '\033',
 	// ansi escape codes
 	ARROW_UP = 'A',
@@ -17,7 +18,6 @@ enum class Key : int {
 	PAGE_UP = '5',
 	PAGE_DOWN = '6',
 	BACKSPACE = 127,
-	ENTER = 13,
-
+	ENTER = 13
 };
 #endif
