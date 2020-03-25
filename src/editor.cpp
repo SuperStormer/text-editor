@@ -104,47 +104,22 @@ void Editor::handle_arrow_right() {
 void Editor::handle_backspace() {
 	if (col == 1) {
 		if (curr_line > 0) {
-			std::string removed_line{lines[curr_line]};
 			col = lines[curr_line - 1].size() + 1;
-			/*lines[curr_line - 1].append(lines[curr_line]);
-			lines.erase(lines.begin() + curr_line);
-			move_up();*/
 			move_up();
 			perform_action(Remove(curr_line, col, std::vector<std::string>{"", ""}));
-			// col++;
 		}
 	} else {
 		char removed_char = lines[curr_line][col - 2];
-		// lines[curr_line].erase(col - 2, 1);
 		perform_action(Remove(curr_line, col - 1, std::vector<std::string>{std::string(1, removed_char)}));
-		// col--;
-		// push_action(std::make_shared<Remove>(curr_line, col, std::vector<std::string>{std::string(1, removed_char)}));
 	}
 }
 void Editor::handle_enter() {
 	perform_action(Add(curr_line, col, std::vector<std::string>{"", ""}));
-	/*auto& line = lines[curr_line];
-	auto start = line.begin() + col - 1;
-	std::string new_line = std::string(start, line.end());
-	line.erase(start, line.end());
-	lines.insert(lines.begin() + curr_line + 1, new_line);
-	push_action(std::make_shared<Add>(curr_line, col, std::vector<std::string>{"", ""}));
-	move_down();
-	col = 1;*/
 }
 void Editor::handle_key(Key key) {
 	// std::cout << static_cast<int>(key);
 	char chr = static_cast<char>(key);
 	perform_action(Add(curr_line, col, std::vector<std::string>{std::string(1, chr)}));
-
-	/*if (col == 0) {
-		lines[curr_line].insert(0, 1, chr);
-		col++;
-	} else {
-		lines[curr_line].insert(col - 1, 1, chr);
-		push_action(std::make_shared<Add>(curr_line, col - 1, std::vector<std::string>{std::string(1, chr)}));
-	}
-	col++;*/
 }
 void Editor::quit() {
 	done = true;
@@ -222,12 +197,6 @@ void Editor::perform_action(T&& action) {
 	push_action(std::make_shared<T>(action));
 }
 void Editor::push_action(const std::shared_ptr<Action>& action) {
-	/*std::clog << typeid(*action).name() << " " << action->line << " " << action->col << "'";
-	for (const auto& line : action->lines) {
-		std::clog << line << "\n";
-	}
-	std::clog << "'\n";*/
-
 	std::chrono::time_point<Clock> now = Clock::now();
 	std::chrono::duration<double> elapsed = now - action_timer;
 	action_timer = now;

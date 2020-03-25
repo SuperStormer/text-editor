@@ -19,14 +19,6 @@ const std::pair<size_t, size_t> Action::get_end() const {
 	}
 	return std::pair<size_t, size_t>{end_line, end_col};
 }
-void Action::merge(std::shared_ptr<Action> action) {
-	auto it = action->lines.begin();
-	lines.back().append(*it);
-	it++;
-	if (action->lines.size() > 1) {
-		lines.insert(lines.end(), it, action->lines.end());
-	}
-}
 std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& action1, const std::shared_ptr<Action>& action2,
 											 const std::vector<std::string>& lines) {
 	if (dynamic_cast<Add*>(action1.get()) != nullptr && dynamic_cast<Add*>(action2.get()) != nullptr) {
@@ -85,30 +77,11 @@ std::pair<size_t, size_t> Add::operator()(std::vector<std::string>& lines) {
 		new_col = lines[new_line].size() + 1;
 		lines[new_line].append(suffix);
 	}
-	/*if (this->lines.size() > 1) {
-		i->insert(0, *it);
-	}*/
 	return std::pair<size_t, size_t>{new_line, new_col};
 }
 std::shared_ptr<Action> Add::reverse() {
 	return std::make_shared<Remove>(line, col, lines);
-} /*
- bool Add::merge_if_adj(std::shared_ptr<Action>& action, const std::vector<std::string>& lines) {
-	 if (dynamic_cast<Add*>(action.get()) != nullptr) {
-		 auto end = action->get_end();
-		 if ((end.first == line && end.second == col) ||
-			 (end.first == line - 1 && col == 0 && end.second == lines[end.first].size() - 1)) {
-			 auto it = this->lines.begin();
-			 action->lines.back().append(*it);
-			 it++;
-			 if (lines.size() > 1) {
-				 action->lines.insert(action->lines.end(), it, this->lines.end());
-			 }
-			 return true;
-		 }
-	 }
-	 return false;
- }*/
+}
 std::pair<size_t, size_t> Remove::operator()(std::vector<std::string>& lines) {
 	auto it = this->lines.begin();
 
@@ -127,32 +100,8 @@ std::pair<size_t, size_t> Remove::operator()(std::vector<std::string>& lines) {
 		lines[line].append(lines[next_line].substr(it->size()));
 		lines.erase(lines.begin() + next_line);
 	}
-	/*auto i = lines.begin() + line;
-	for (; it < lines.end() - 1; it++, i++) {
-		lines.erase(i);
-	}
-	if (this->lines.size() > 1) {
-		i->erase(0, it->size());
-	}*/
 	return std::pair<size_t, size_t>{line, col};
 }
 std::shared_ptr<Action> Remove::reverse() {
 	return std::make_shared<Add>(line, col, lines);
-} /*
- std::shared_ptr<Action> Remove::merge_if_adj(std::shared_ptr<Action>& action, const std::vector<std::string>& lines) {
-	 if (dynamic_cast<Remove*>(action.get()) != nullptr) {
-		 auto end = get_end();
-		 if ((end.first == action->line && end.second == action->col) ||
-			 (end.first == action->line - 1 && action->col == 0 && end.second == lines[end.first].size() - 1)) {
-			 // action->merge(std::shared_ptr<Remove>{this});
-			 // return action;
-			 auto it = action->lines.begin();
-			 this->lines.back().append(*it);
-			 it++;
-			 if (action->lines.size() > 1) {
-				 this->lines.insert(this->lines.end(), it, action->lines.end());
-			 }
-		 }
-	 }
-	 return nullptr;
- }*/
+}
