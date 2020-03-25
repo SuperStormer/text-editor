@@ -42,8 +42,9 @@ class Editor {
 	void quit();
 	void save();
 	void display();
-	void move_up();
-	void move_down();
+	void change_line(size_t offset);
+	template <typename T>
+	void execute_action(T&& action);
 	template <typename T>
 	void perform_action(T&& action);
 	void push_action(const std::shared_ptr<Action>& action);

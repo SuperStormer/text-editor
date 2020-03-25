@@ -5,7 +5,7 @@
 #include <tuple>
 #include <utility>
 Action::Action(size_t line, size_t col, std::vector<std::string> lines) : line{line}, col{col}, lines{std::move(lines)} {}
-const std::pair<size_t, size_t> Action::get_end() const {
+std::pair<size_t, size_t> Action::get_end() const {
 	size_t end_line = line;
 	auto it = lines.begin();
 	for (; it < lines.end() - 1; it++) {
@@ -13,7 +13,7 @@ const std::pair<size_t, size_t> Action::get_end() const {
 	}
 	size_t end_col;
 	if (lines.size() > 1) {
-		end_col = it->size();
+		end_col = it->size() + 1;
 	} else {
 		end_col = col + it->size();
 	}
@@ -23,7 +23,7 @@ std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& acti
 											 const std::vector<std::string>& lines) {
 	if (dynamic_cast<Add*>(action1.get()) != nullptr && dynamic_cast<Add*>(action2.get()) != nullptr) {
 		auto end = action1->get_end();
-		if (end.first == action2->line && end.second == action2->col) {
+		if (end.first == action2->line && end.second == action2->col && action2->lines.size() < 2) {
 			auto it = action2->lines.begin();
 			action1->lines.back().append(*it);
 			it++;
@@ -34,8 +34,7 @@ std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& acti
 		}
 	} else if (dynamic_cast<Remove*>(action1.get()) != nullptr && dynamic_cast<Remove*>(action2.get()) != nullptr) {
 		auto end = action2->get_end();
-		if ((end.first == action1->line && end.second == action1->col) ||
-			(end.first == action1->line - 1 && action1->col == 0 && end.second == lines[end.first].size() - 1)) {
+		if (end.first == action1->line && end.second == action1->col) {
 			auto it = action1->lines.begin();
 			action2->lines.back().append(*it);
 			it++;

@@ -14,7 +14,7 @@ class Action {
 	static std::shared_ptr<Action> merge_if_adj(const std::shared_ptr<Action>& action1, const std::shared_ptr<Action>& action2,
 												const std::vector<std::string>& lines);
 
-	const std::pair<size_t, size_t> get_end() const;
+	std::pair<size_t, size_t> get_end() const;
 	const size_t line;
 	const size_t col;
 	std::vector<std::string> lines;

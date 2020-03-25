@@ -71,7 +71,7 @@ void Editor::handle_escape() {
 }
 void Editor::handle_arrow_up() {
 	if (curr_line > 0) {
-		move_up();
+		change_line(-1);
 		if (col > lines[curr_line].size() + 1) {
 			col = lines[curr_line].size() + 1;
 		}
@@ -79,7 +79,7 @@ void Editor::handle_arrow_up() {
 }
 void Editor::handle_arrow_down() {
 	if (curr_line < lines.size() - 1) {
-		move_down();
+		change_line(1);
 		if (col > lines[curr_line].size() + 1) {
 			col = lines[curr_line].size() + 1;
 		}
@@ -89,7 +89,7 @@ void Editor::handle_arrow_left() {
 	if (col > 1) {
 		col--;
 	} else if (curr_line > 0) {
-		move_up();
+		change_line(-1);
 		col = lines[curr_line].size() + 1;
 	}
 }
@@ -97,7 +97,7 @@ void Editor::handle_arrow_right() {
 	if (col < lines[curr_line].size() + 1) {
 		col++;
 	} else if (curr_line < lines.size() - 1) {
-		move_down();
+		change_line(1);
 		col = 1;
 	}
 }
@@ -105,7 +105,7 @@ void Editor::handle_backspace() {
 	if (col == 1) {
 		if (curr_line > 0) {
 			col = lines[curr_line - 1].size() + 1;
-			move_up();
+			change_line(-1);
 			perform_action(Remove(curr_line, col, std::vector<std::string>{"", ""}));
 		}
 	} else {
@@ -135,7 +135,7 @@ void Editor::redo() {
 		std::shared_ptr<Action> action = undos.top();
 		undos.pop();
 		std::shared_ptr<Action> new_action = action->reverse();
-		std::tie(curr_line, col) = (*new_action)(lines);
+		execute_action(*new_action);
 		actions.push(new_action);
 	}
 }
@@ -144,7 +144,7 @@ void Editor::undo() {
 		std::shared_ptr<Action> action = actions.top();
 		actions.pop();
 		std::shared_ptr<Action> new_action = action->reverse();
-		std::tie(curr_line, col) = (*new_action)(lines);
+		execute_action(*new_action);
 		undos.push(new_action);
 	}
 }
@@ -178,22 +178,24 @@ void Editor::display() {
 	size_t tabs = std::count(line.begin(), line.begin() + col - 1, '\t');
 	std::cout << "\033[" << curr_line - window_start + 1 << ";" << col + tabs * (tab_size - 1) << "f";
 }
-inline void Editor::move_up() {
-	if (curr_line == window_start) {
-		window_start--;
+inline void Editor::change_line(size_t offset) {
+	curr_line += offset;
+	if (curr_line >= window_start + get_terminal_size().first) {
+		window_start = curr_line - get_terminal_size().first + 1;
+	} else if (curr_line < window_start) {
+		window_start = curr_line;
 	}
-	curr_line--;
 }
-inline void Editor::move_down() {
-	if (curr_line == window_start + get_terminal_size().first - 1) {
-		window_start++;
-	}
-	curr_line++;
+template <typename T>
+inline void Editor::execute_action(T&& action) {
+	size_t new_line;
+	std::tie(new_line, col) = action(lines);
+	change_line(new_line - curr_line);
 }
 template <typename T>
 void Editor::perform_action(T&& action) {
 	clear_undos();
-	std::tie(curr_line, col) = action(lines);
+	execute_action(action);
 	push_action(std::make_shared<T>(action));
 }
 void Editor::push_action(const std::shared_ptr<Action>& action) {
