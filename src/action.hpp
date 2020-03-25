@@ -10,8 +10,15 @@ class Action {
 	virtual ~Action() = default;
 	virtual std::pair<size_t, size_t> operator()(std::vector<std::string>& lines) = 0;
 	virtual std::shared_ptr<Action> reverse() = 0;
-	size_t line;
-	size_t col;
+	// merges this into action if adjacent
+	static std::shared_ptr<Action> merge_if_adj(const std::shared_ptr<Action>& action1, const std::shared_ptr<Action>& action2,
+												const std::vector<std::string>& lines);
+
+	const std::pair<size_t, size_t> get_end() const;
+	// merges this into action
+	void merge(std::shared_ptr<Action> action);
+	const size_t line;
+	const size_t col;
 	std::vector<std::string> lines;
 };
 class Add : public Action {
@@ -20,6 +27,8 @@ class Add : public Action {
    public:
 	std::pair<size_t, size_t> operator()(std::vector<std::string>& lines) override;
 	std::shared_ptr<Action> reverse() override;
+	// std::shared_ptr<Action> merge_if_adj(const std::shared_ptr<Action>& action, const std::vector<std::string>& lines)
+	// override;
 };
 class Remove : public Action {
 	using Action::Action;
@@ -27,5 +36,7 @@ class Remove : public Action {
    public:
 	std::pair<size_t, size_t> operator()(std::vector<std::string>& lines) override;
 	std::shared_ptr<Action> reverse() override;
+	// std::shared_ptr<Action> merge_if_adj(const std::shared_ptr<Action>& action, const std::vector<std::string>& lines)
+	// override;
 };
 #endif

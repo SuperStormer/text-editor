@@ -1,5 +1,6 @@
 #ifndef EDITOR_H
 #define EDITOR_H
+#include <chrono>
 #include <memory>
 #include <stack>
 #include <string>
@@ -16,6 +17,7 @@
 #endif
 class Editor;
 using KeyHandler = void (Editor::*)();
+using Clock = std::chrono::steady_clock;
 class Editor {
    public:
 	Editor(const std::string& filename, const std::vector<std::string>& args);
@@ -59,7 +61,7 @@ class Editor {
 	std::vector<std::string> lines{};
 	std::stack<std::shared_ptr<Action>> actions{};
 	std::stack<std::shared_ptr<Action>> undos{};
-
+	std::chrono::time_point<Clock> action_timer;
 	struct KeyBinds {
 		KeyBinds(std::unordered_map<Key, KeyHandler> keybinds, std::unordered_map<Key, KeyHandler> escape_handlers);
 		std::unordered_map<Key, KeyHandler> keybinds;
