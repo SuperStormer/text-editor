@@ -188,8 +188,9 @@ inline void Editor::change_line(size_t offset) {
 }
 template <typename T>
 inline void Editor::execute_action(T&& action) {
-	size_t new_line;
-	std::tie(new_line, col) = action(lines);
+	Position position = action(lines);
+	size_t new_line = position.line;
+	col = position.col;
 	change_line(new_line - curr_line);
 }
 template <typename T>

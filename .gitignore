@@ -7,3 +7,4 @@ x.txt
 *.o
 texteditor
 texteditor.exe
+*log.txt

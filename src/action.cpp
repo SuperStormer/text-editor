@@ -4,26 +4,28 @@
 #include <stdexcept>
 #include <tuple>
 #include <utility>
+
+#include "position.hpp"
 Action::Action(size_t line, size_t col, std::vector<std::string> lines) : line{line}, col{col}, lines{std::move(lines)} {}
-std::pair<size_t, size_t> Action::get_end() const {
+Position Action::get_end() const {
 	size_t end_line = line;
 	auto it = lines.begin();
 	for (; it < lines.end() - 1; it++) {
 		end_line++;
 	}
-	size_t end_col;
+	size_t end_col{0};
 	if (lines.size() > 1) {
 		end_col = it->size() + 1;
 	} else {
 		end_col = col + it->size();
 	}
-	return std::pair<size_t, size_t>{end_line, end_col};
+	return Position{end_line, end_col};
 }
 std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& action1, const std::shared_ptr<Action>& action2,
 											 const std::vector<std::string>& lines) {
 	if (dynamic_cast<Add*>(action1.get()) != nullptr && dynamic_cast<Add*>(action2.get()) != nullptr) {
 		auto end = action1->get_end();
-		if (end.first == action2->line && end.second == action2->col && action2->lines.size() < 2) {
+		if (end.line == action2->line && end.col == action2->col && action2->lines.size() < 2) {
 			auto it = action2->lines.begin();
 			action1->lines.back().append(*it);
 			it++;
@@ -34,7 +36,7 @@ std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& acti
 		}
 	} else if (dynamic_cast<Remove*>(action1.get()) != nullptr && dynamic_cast<Remove*>(action2.get()) != nullptr) {
 		auto end = action2->get_end();
-		if (end.first == action1->line && end.second == action1->col) {
+		if (end.line == action1->line && end.col == action1->col) {
 			auto it = action1->lines.begin();
 			action2->lines.back().append(*it);
 			it++;
@@ -46,7 +48,7 @@ std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& acti
 	}
 	return nullptr;
 }
-std::pair<size_t, size_t> Add::operator()(std::vector<std::string>& lines) {
+Position Add::operator()(std::vector<std::string>& lines) {
 	auto it = this->lines.begin();
 	std::string& curr_line = lines[line];
 	size_t new_line{line};
@@ -76,12 +78,12 @@ std::pair<size_t, size_t> Add::operator()(std::vector<std::string>& lines) {
 		new_col = lines[new_line].size() + 1;
 		lines[new_line].append(suffix);
 	}
-	return std::pair<size_t, size_t>{new_line, new_col};
+	return Position{new_line, new_col};
 }
 std::shared_ptr<Action> Add::reverse() {
 	return std::make_shared<Remove>(line, col, lines);
 }
-std::pair<size_t, size_t> Remove::operator()(std::vector<std::string>& lines) {
+Position Remove::operator()(std::vector<std::string>& lines) {
 	auto it = this->lines.begin();
 
 	if (col > 0) {
@@ -99,7 +101,7 @@ std::pair<size_t, size_t> Remove::operator()(std::vector<std::string>& lines) {
 		lines[line].append(lines[next_line].substr(it->size()));
 		lines.erase(lines.begin() + next_line);
 	}
-	return std::pair<size_t, size_t>{line, col};
+	return Position{line, col};
 }
 std::shared_ptr<Action> Remove::reverse() {
 	return std::make_shared<Add>(line, col, lines);

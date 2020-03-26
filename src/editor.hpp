@@ -11,7 +11,7 @@
 #include "action.hpp"
 #include "key.hpp"
 #if defined(unix) || defined(__unix__) || defined(__unix)
-#include "termios.h"
+#include <termios.h>
 #elif defined(_WIN32)
 #include <windows.h>
 #endif
