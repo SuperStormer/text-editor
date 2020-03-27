@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS= -Wall -Wextra -Wno-switch -std=c++17 -pedantic -ggdb3
+CXXFLAGS= -Wall -Wextra -Wno-switch -std=c++17 -pedantic -ggdb3 -O2
 
 #adapted from from https://stackoverflow.com/a/2908351/7941251
 SRC_FOLDER = ./src
