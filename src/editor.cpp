@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -162,21 +163,24 @@ const Editor::KeyBinds Editor::KeyBinds::default_binds{{{Key::CTRL_C, &Editor::q
 														{Key::ARROW_RIGHT, &Editor::handle_arrow_right}}};
 void Editor::display() {
 	int tab_size = 4;  // TODO read this from a config file
+	std::string tab_repl(tab_size, ' ');
+	std::ostringstream out{};
 	std::cout << "\033[2J\033[H";
 	auto end = lines.begin() + window_start + get_terminal_size().first;
 	if (end > lines.end()) {
 		end = lines.end();
 	}
 	auto it = lines.begin() + window_start;
-	std::cout << replace_all(*it, "\t", std::string(tab_size, ' '));
+	out << replace_all(*it, "\t", tab_repl);
 	it++;
 	for (; it < end; it++) {
-		std::cout << "\n" << replace_all(*it, "\t", std::string(tab_size, ' '));
+		out << '\n' << replace_all(*it, "\t", tab_repl);
 	}
 	std::string line = lines[curr_line];
 	// fix cols b/c tabs displayed as spaces in output messes up
 	size_t tabs = std::count(line.begin(), line.begin() + col - 1, '\t');
-	std::cout << "\033[" << curr_line - window_start + 1 << ";" << col + tabs * (tab_size - 1) << "f";
+	out << "\033[" << curr_line - window_start + 1 << ";" << col + tabs * (tab_size - 1) << "f";
+	std::cout << out.str();
 }
 inline void Editor::change_line(size_t offset) {
 	curr_line += offset;

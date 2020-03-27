@@ -17,6 +17,7 @@ int main(int argc, const char** argv) {
 		std::cerr << "Invalid filename" << std::endl;
 		exit(1);
 	}
+	std::ios_base::sync_with_stdio(false);
 	std::vector<std::string> args{argv + 2, argv + argc};
 	Editor editor{filename, args};
 	editor.start();
