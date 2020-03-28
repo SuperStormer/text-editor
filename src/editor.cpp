@@ -73,6 +73,7 @@ void Editor::handle_escape() {
 void Editor::handle_arrow_up() {
 	if (curr_line > 0) {
 		change_line(-1);
+		// handle differently sized lines
 		if (col > lines[curr_line].size() + 1) {
 			col = lines[curr_line].size() + 1;
 		}
@@ -90,6 +91,7 @@ void Editor::handle_arrow_left() {
 	if (col > 1) {
 		col--;
 	} else if (curr_line > 0) {
+		// handle moving left from the start of a line to the previous line
 		change_line(-1);
 		col = lines[curr_line].size() + 1;
 	}
@@ -98,12 +100,14 @@ void Editor::handle_arrow_right() {
 	if (col < lines[curr_line].size() + 1) {
 		col++;
 	} else if (curr_line < lines.size() - 1) {
+		// handle moving right from the end of line to the following line
 		change_line(1);
 		col = 1;
 	}
 }
 void Editor::handle_backspace() {
 	if (col == 1) {
+		// handle deleting the newline
 		if (curr_line > 0) {
 			col = lines[curr_line - 1].size() + 1;
 			change_line(-1);
@@ -131,15 +135,9 @@ void Editor::save() {
 		output << line << "\n";
 	}
 }
-void Editor::redo() {
-	if (!undos.empty()) {
-		std::shared_ptr<Action> action = undos.top();
-		undos.pop();
-		std::shared_ptr<Action> new_action = action->reverse();
-		execute_action(*new_action);
-		actions.push(new_action);
-	}
-}
+void Editor::cut() {}
+void Editor::copy() {}
+void Editor::paste() {}
 void Editor::undo() {
 	if (!actions.empty()) {
 		std::shared_ptr<Action> action = actions.top();
@@ -149,9 +147,21 @@ void Editor::undo() {
 		undos.push(new_action);
 	}
 }
+void Editor::redo() {
+	if (!undos.empty()) {
+		std::shared_ptr<Action> action = undos.top();
+		undos.pop();
+		std::shared_ptr<Action> new_action = action->reverse();
+		execute_action(*new_action);
+		actions.push(new_action);
+	}
+}
 Editor::KeyBinds::KeyBinds(std::unordered_map<Key, KeyHandler> keybinds, std::unordered_map<Key, KeyHandler> escape_handlers)
 	: keybinds(std::move(keybinds)), escape_handlers(std::move(escape_handlers)) {}
-const Editor::KeyBinds Editor::KeyBinds::default_binds{{{Key::CTRL_C, &Editor::quit},
+const Editor::KeyBinds Editor::KeyBinds::default_binds{{{Key::CTRL_C, &Editor::copy},
+														{Key::CTRL_Q, &Editor::quit},
+														{Key::CTRL_V, &Editor::paste},
+														{Key::CTRL_X, &Editor::cut},
 														{Key::CTRL_S, &Editor::save},
 														{Key::CTRL_Y, &Editor::redo},
 														{Key::CTRL_Z, &Editor::undo},
@@ -182,6 +192,7 @@ void Editor::display() {
 }
 inline void Editor::change_line(size_t offset) {
 	curr_line += offset;
+	// adjust window_start if curr_line will be offscreen
 	if (curr_line >= window_start + get_terminal_size().first) {
 		window_start = curr_line - get_terminal_size().first + 1;
 	} else if (curr_line < window_start) {
@@ -206,6 +217,7 @@ void Editor::push_action(const std::shared_ptr<Action>& action) {
 	std::chrono::duration<double> elapsed = now - action_timer;
 	action_timer = now;
 	if (elapsed.count() < 0.5) {
+		// chain actions to avoid 1-char actions
 		std::shared_ptr<Action> prev = actions.top();
 		std::shared_ptr<Action> new_action = Action::merge_if_adj(prev, action, lines);
 		if (new_action) {
@@ -221,6 +233,7 @@ inline void Editor::clear_undos() {
 }
 void Editor::disable_raw_mode() {
 #if defined(unix) || defined(__unix__) || defined(__unix)
+	// from https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
 	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
 		throw std::runtime_error{"tcsetattr returned -1"};
 	}
@@ -231,6 +244,7 @@ void Editor::disable_raw_mode() {
 }
 void Editor::enable_raw_mode() {
 #if defined(unix) || defined(__unix__) || defined(__unix)
+	// from https://viewsourcecode.org/snaptoken/kilo/02.enteringRawMode.html
 	if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
 		throw std::runtime_error{"tcgetattr returned -1"};
 	}
@@ -245,6 +259,8 @@ void Editor::enable_raw_mode() {
 		throw std::runtime_error{"tcsetattr returned -1"};
 	}
 #elif defined(_WIN32)
+	// from https://cpp.hotexamples.com/examples/-/-/SetConsoleMode/cpp-setconsolemode-function-examples.html and
+	// https://docs.microsoft.com/en-us/windows/console/setconsolemode
 	HANDLE h_stdin = GetStdHandle(STD_INPUT_HANDLE);
 	GetConsoleMode(h_stdin, (LPDWORD)&orig_console_mode);
 	DWORD raw = orig_console_mode;
@@ -254,10 +270,12 @@ void Editor::enable_raw_mode() {
 }
 std::pair<int, int> Editor::get_terminal_size() {
 #if defined(unix) || defined(__unix__) || defined(__unix)
+	// from https://stackoverflow.com/a/1022961/7941251
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 	return std::pair{w.ws_row, w.ws_col};
 #elif defined(_Win32)
+	// from https://stackoverflow.com/a/12642749/7941251
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
 	int columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;

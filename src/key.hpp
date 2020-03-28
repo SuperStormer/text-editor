@@ -2,9 +2,14 @@
 #define KEY_H
 enum class Key : int {
 	CTRL_C = 3,
+	CTRL_Q = 17,
 	CTRL_S = 19,
+	CTRL_V = 22,
+	CTRL_X = 24,
 	CTRL_Y = 25,
 	CTRL_Z = 26,
+	BACKSPACE = 127,
+	ENTER = 13,
 	ESCAPE_START = '\033',
 	// ansi escape codes
 	ARROW_UP = 'A',
@@ -17,7 +22,5 @@ enum class Key : int {
 	DELETE = '3',
 	PAGE_UP = '5',
 	PAGE_DOWN = '6',
-	BACKSPACE = 127,
-	ENTER = 13
 };
 #endif

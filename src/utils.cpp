@@ -6,7 +6,7 @@ std::string replace_all(std::string str, const std::string& search, const std::s
 	size_t start_pos = 0;
 	while ((start_pos = str.find(search, start_pos)) != std::string::npos) {
 		str.replace(start_pos, search.length(), replace);
-		start_pos += replace.length();	// Handles case where 'to' is a substring of 'from'
+		start_pos += replace.length();	// Handles case where 'search' is a substring of 'replace'
 	}
 	return str;
 }

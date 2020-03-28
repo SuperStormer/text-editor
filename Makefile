@@ -10,7 +10,7 @@ else
 endif
 SRC_FILES := $(wildcard $(SRC_FOLDER)/*.cpp)
 OBJ_FILES := $(patsubst $(SRC_FOLDER)/%.cpp,$(OBJ_FOLDER)/%.o,$(SRC_FILES))
-texteditor: $(OBJ_FILES) src/key.hpp
+texteditor: $(OBJ_FILES)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_FILES)
 
 $(OBJ_FOLDER)/%.o: $(SRC_FOLDER)/%.cpp

@@ -37,6 +37,9 @@ class Editor {
 	void handle_arrow_left();
 	void handle_arrow_right();
 	void handle_key(Key key);
+	void cut();
+	void copy();
+	void paste();
 	void undo();
 	void redo();
 	void quit();
@@ -63,6 +66,8 @@ class Editor {
 	std::stack<std::shared_ptr<Action>> actions{};
 	std::stack<std::shared_ptr<Action>> undos{};
 	std::chrono::time_point<Clock> action_timer;
+	std::shared_ptr<Add> clipboard;
+	std::pair<Position, Position> selection;
 	struct KeyBinds {
 		KeyBinds(std::unordered_map<Key, KeyHandler> keybinds, std::unordered_map<Key, KeyHandler> escape_handlers);
 		std::unordered_map<Key, KeyHandler> keybinds;

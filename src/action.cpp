@@ -54,6 +54,7 @@ Position Add::operator()(std::vector<std::string>& lines) {
 	size_t new_line{line};
 	size_t new_col{col + it->size()};
 	std::string suffix;
+	// append 1st line to the end of the current line
 	if (new_col == 0) {
 		if (curr_line.size() > 1) {
 			suffix = curr_line;
@@ -67,11 +68,13 @@ Position Add::operator()(std::vector<std::string>& lines) {
 		curr_line.insert(col - 1, *it);
 	}
 	it++;
+	// insert the new lines after the current line
 	auto i = lines.begin() + line + 1;
 	for (; it < this->lines.end(); it++, i++) {
 		lines.insert(i, *it);
 		new_line++;
 	}
+	// prepend the last line to the next line
 	if (this->lines.size() > 1) {
 		std::string& orig_line = lines[line];  // in case of realloc of memory
 		orig_line.erase(orig_line.size() - suffix.size());
@@ -85,18 +88,20 @@ std::shared_ptr<Action> Add::reverse() {
 }
 Position Remove::operator()(std::vector<std::string>& lines) {
 	auto it = this->lines.begin();
-
+	// remove the chars from the current line
 	if (col > 0) {
 		lines[line].erase(col - 1, it->size());
 	} else if (col == 1) {
 		lines[line].erase(1, it->size());
 	}
 	it++;
+	// remove the next lines
 	const size_t next_line = line + 1;
 	for (; it < this->lines.end() - 1; it++) {
 		// lines[curr_line - 1].append(lines[curr_line]);
 		lines.erase(lines.begin() + next_line);
 	}
+	// remove the chars from the last line
 	if (this->lines.size() > 1) {
 		lines[line].append(lines[next_line].substr(it->size()));
 		lines.erase(lines.begin() + next_line);
