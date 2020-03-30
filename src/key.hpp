@@ -22,5 +22,9 @@ enum class Key : int {
 	DELETE = '3',
 	PAGE_UP = '5',
 	PAGE_DOWN = '6',
+	MODIFIER_ARROW_START = '1',
+	SHIFT_ARROW_START = '2',
+	CTRL_ARROW_START = '5',
+	CTRL_SHIFT_ARROW_START = '6'
 };
 #endif

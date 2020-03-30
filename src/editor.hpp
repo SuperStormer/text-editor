@@ -36,6 +36,8 @@ class Editor {
 	void handle_arrow_down();
 	void handle_arrow_left();
 	void handle_arrow_right();
+	void handle_modifier_arrow();
+	void handle_shift_arrow();
 	void handle_key(Key key);
 	void cut();
 	void copy();
@@ -52,6 +54,7 @@ class Editor {
 	void perform_action(T&& action);
 	void push_action(const std::shared_ptr<Action>& action);
 	void clear_undos();
+	void clear_selection();
 	void disable_raw_mode();
 	void enable_raw_mode();
 	std::pair<int, int> get_terminal_size();
@@ -59,15 +62,16 @@ class Editor {
    private:
 	size_t window_start{0};
 	size_t curr_line{0};
-	size_t col{1};
+	size_t col{1};	// 1-indexed; idk why
 	bool done{false};
 	std::string filename;
 	std::vector<std::string> lines{};
 	std::stack<std::shared_ptr<Action>> actions{};
 	std::stack<std::shared_ptr<Action>> undos{};
 	std::chrono::time_point<Clock> action_timer;
-	std::shared_ptr<Add> clipboard;
-	std::pair<Position, Position> selection;
+	std::vector<std::string> clipboard;
+	Position selection_start;
+	bool has_selection{false};
 	struct KeyBinds {
 		KeyBinds(std::unordered_map<Key, KeyHandler> keybinds, std::unordered_map<Key, KeyHandler> escape_handlers);
 		std::unordered_map<Key, KeyHandler> keybinds;

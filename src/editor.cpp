@@ -14,6 +14,7 @@
 
 #include "action.hpp"
 #include "key.hpp"
+#include "position.hpp"
 #include "utils.hpp"
 #if defined(unix) || defined(__unix__) || defined(__unix)
 #include <sys/ioctl.h>
@@ -65,6 +66,9 @@ void Editor::update() {
 void Editor::handle_escape() {
 	get_key();	// ignore [
 	Key key = get_key();
+	if (key != Key::MODIFIER_ARROW_START) {
+		clear_selection();
+	}
 	auto key_handler = keybinds.escape_handlers.find(key);
 	if (key_handler != keybinds.escape_handlers.end()) {
 		(this->*(*key_handler).second)();
@@ -89,7 +93,7 @@ void Editor::handle_arrow_down() {
 }
 void Editor::handle_arrow_left() {
 	if (col > 1) {
-		col--;
+		--col;
 	} else if (curr_line > 0) {
 		// handle moving left from the start of a line to the previous line
 		change_line(-1);
@@ -98,11 +102,44 @@ void Editor::handle_arrow_left() {
 }
 void Editor::handle_arrow_right() {
 	if (col < lines[curr_line].size() + 1) {
-		col++;
+		++col;
 	} else if (curr_line < lines.size() - 1) {
 		// handle moving right from the end of line to the following line
 		change_line(1);
 		col = 1;
+	}
+}
+void Editor::handle_modifier_arrow() {
+	// escape sequence is <ESC>[1;xy where x is 2,5 or 6(shift,ctrl or ctrl_shift) and y is a,b,c or d(u/d/l/r arrows)
+	get_key();	// skip ;
+	switch (get_key()) {
+		case Key::SHIFT_ARROW_START:
+			handle_shift_arrow();
+			break;
+		case Key::CTRL_ARROW_START:
+			break;
+		case Key::CTRL_SHIFT_ARROW_START:
+			break;
+	}
+}
+void Editor::handle_shift_arrow() {
+	if (!has_selection) {
+		selection_start = {curr_line, col};
+		has_selection = true;
+	}
+	switch (get_key()) {
+		case Key::ARROW_UP:
+			handle_arrow_up();
+			break;
+		case Key::ARROW_DOWN:
+			handle_arrow_down();
+			break;
+		case Key::ARROW_LEFT:
+			handle_arrow_left();
+			break;
+		case Key::ARROW_RIGHT:
+			handle_arrow_right();
+			break;
 	}
 }
 void Editor::handle_backspace() {
@@ -122,7 +159,7 @@ void Editor::handle_enter() {
 	perform_action(Add(curr_line, col, std::vector<std::string>{"", ""}));
 }
 void Editor::handle_key(Key key) {
-	// std::cout << static_cast<int>(key);
+	// std::cout << static_cast<int>(key) << " ";
 	char chr = static_cast<char>(key);
 	perform_action(Add(curr_line, col, std::vector<std::string>{std::string(1, chr)}));
 }
@@ -135,9 +172,31 @@ void Editor::save() {
 		output << line << "\n";
 	}
 }
-void Editor::cut() {}
-void Editor::copy() {}
-void Editor::paste() {}
+void Editor::cut() {
+	copy();
+	perform_action(Remove(selection_start.line, selection_start.col, clipboard));
+}
+void Editor::copy() {
+	clipboard = {};
+	auto selection_bounds = std::minmax(selection_start, Position{curr_line, col});
+	Position real_selection_start = selection_bounds.first;
+	Position selection_end = selection_bounds.second;
+	auto it = lines.begin() + real_selection_start.line;
+	auto end = lines.begin() + selection_end.line;
+	if (it == end) {
+		clipboard.emplace_back(it->begin() + real_selection_start.col - 1, it->begin() + selection_end.col - 1);
+	} else {
+		clipboard.emplace_back(it->begin() + real_selection_start.col - 1, it->end());
+		++it;
+		for (; it < end - 1; ++it) {
+			clipboard.push_back(*it);
+		}
+		clipboard.emplace_back(it->begin(), it->begin() + selection_end.col);
+	}
+}
+void Editor::paste() {
+	perform_action(Add(curr_line, col, clipboard));
+}
 void Editor::undo() {
 	if (!actions.empty()) {
 		std::shared_ptr<Action> action = actions.top();
@@ -170,20 +229,69 @@ const Editor::KeyBinds Editor::KeyBinds::default_binds{{{Key::CTRL_C, &Editor::c
 													   {{Key::ARROW_UP, &Editor::handle_arrow_up},
 														{Key::ARROW_DOWN, &Editor::handle_arrow_down},
 														{Key::ARROW_LEFT, &Editor::handle_arrow_left},
-														{Key::ARROW_RIGHT, &Editor::handle_arrow_right}}};
+														{Key::ARROW_RIGHT, &Editor::handle_arrow_right},
+														{Key::MODIFIER_ARROW_START, &Editor::handle_modifier_arrow}}};
 void Editor::display() {
-	int tab_size = 4;  // TODO read this from a config file
-	std::string tab_repl(tab_size, ' ');
+	const int tab_size = 4;	 // TODO read this from a config file
+	const std::string tab_repl(tab_size, ' ');
+	const std::string highlight_start = "\033[7m";
+	const std::string highlight_end = "\033[0m";
+	const size_t end_line = window_start + get_terminal_size().first;
 	std::cout << "\033[2J\033[H";
-	auto end = lines.begin() + window_start + get_terminal_size().first;
+	auto end = lines.begin() + end_line;
 	if (end > lines.end()) {
 		end = lines.end();
 	}
-	auto it = lines.begin() + window_start;
-	std::cout << replace_all(*it, "\t", tab_repl);
-	it++;
-	for (; it < end; it++) {
-		std::cout << '\n' << replace_all(*it, "\t", tab_repl);
+	if (has_selection) {
+		auto selection_bounds = std::minmax(selection_start, Position{curr_line, col});
+		Position real_selection_start = selection_bounds.first;
+		Position selection_end = selection_bounds.second;
+		std::vector<std::string>::iterator selection_start_line;
+		if (selection_start.line >= window_start) {
+			selection_start_line = lines.begin() + real_selection_start.line;
+		} else {
+			selection_start_line = lines.begin() + window_start;
+		}
+		std::vector<std::string>::iterator selection_end_line;
+		if (selection_end.line <= end_line) {
+			selection_end_line = lines.begin() + selection_end.line;
+		} else {
+			selection_end_line = lines.begin() + end_line;
+		}
+		auto it = lines.begin() + window_start;
+		for (; it < end; ++it) {
+			if (it != lines.begin()) {
+				std::cout << '\n';
+			}
+			if (it != selection_start_line && it != selection_end_line) {
+				std::cout << replace_all(*it, "\t", tab_repl);
+			} else if (it == selection_start_line && it == selection_end_line) {
+				std::string new_str{*it};
+				new_str.insert(real_selection_start.col - 1, highlight_start);
+				if (selection_end.col + highlight_start.length() <= new_str.length()) {
+					new_str.insert(selection_end.col + highlight_start.length() - 1, highlight_end);
+				} else {
+					new_str.append(highlight_end);
+				}
+				std::cout << replace_all(new_str, "\t", tab_repl);
+			} else if (it == selection_start_line) {
+				std::string new_str{*it};
+				new_str.insert(real_selection_start.col - 1, highlight_start);
+				std::cout << replace_all(new_str, "\t", tab_repl);
+			} else if (it == selection_end_line) {
+				std::string new_str{*it};
+				new_str.insert(selection_end.col - 1, highlight_end);
+				std::cout << replace_all(new_str, "\t", tab_repl);
+			}
+		}
+	} else {
+		auto it = lines.begin() + window_start;
+		for (; it < end; ++it) {
+			if (it != lines.begin()) {
+				std::cout << '\n';
+			}
+			std::cout << replace_all(*it, "\t", tab_repl);
+		}
 	}
 	std::string line = lines[curr_line];
 	// fix cols b/c tabs displayed as spaces in output messes up
@@ -208,6 +316,7 @@ inline void Editor::execute_action(T&& action) {
 }
 template <typename T>
 void Editor::perform_action(T&& action) {
+	clear_selection();
 	clear_undos();
 	execute_action(action);
 	push_action(std::make_shared<T>(action));
@@ -230,6 +339,10 @@ void Editor::push_action(const std::shared_ptr<Action>& action) {
 }
 inline void Editor::clear_undos() {
 	std::stack<std::shared_ptr<Action>>().swap(undos);
+}
+inline void Editor::clear_selection() {
+	has_selection = false;
+	selection_start = {};
 }
 void Editor::disable_raw_mode() {
 #if defined(unix) || defined(__unix__) || defined(__unix)

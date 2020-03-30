@@ -10,7 +10,7 @@ Action::Action(size_t line, size_t col, std::vector<std::string> lines) : line{l
 Position Action::get_end() const {
 	size_t end_line = line;
 	auto it = lines.begin();
-	for (; it < lines.end() - 1; it++) {
+	for (; it < lines.end() - 1; ++it) {
 		end_line++;
 	}
 	size_t end_col{0};
@@ -28,7 +28,7 @@ std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& acti
 		if (end.line == action2->line && end.col == action2->col && action2->lines.size() < 2) {
 			auto it = action2->lines.begin();
 			action1->lines.back().append(*it);
-			it++;
+			++it;
 			if (lines.size() > 1) {
 				action1->lines.insert(action1->lines.end(), it, action2->lines.end());
 			}
@@ -39,7 +39,7 @@ std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& acti
 		if (end.line == action1->line && end.col == action1->col) {
 			auto it = action1->lines.begin();
 			action2->lines.back().append(*it);
-			it++;
+			++it;
 			if (lines.size() > 1) {
 				action2->lines.insert(action2->lines.end(), it, action1->lines.end());
 			}
@@ -67,11 +67,11 @@ Position Add::operator()(std::vector<std::string>& lines) {
 		}
 		curr_line.insert(col - 1, *it);
 	}
-	it++;
+	++it;
 	// insert the new lines after the current line
-	auto i = lines.begin() + line + 1;
-	for (; it < this->lines.end(); it++, i++) {
-		lines.insert(i, *it);
+	auto i = line + 1;
+	for (; it < this->lines.end(); ++it, ++i) {
+		lines.insert(lines.begin() + i, *it);
 		new_line++;
 	}
 	// prepend the last line to the next line
@@ -94,10 +94,10 @@ Position Remove::operator()(std::vector<std::string>& lines) {
 	} else if (col == 1) {
 		lines[line].erase(1, it->size());
 	}
-	it++;
+	++it;
 	// remove the next lines
 	const size_t next_line = line + 1;
-	for (; it < this->lines.end() - 1; it++) {
+	for (; it < this->lines.end() - 1; ++it) {
 		// lines[curr_line - 1].append(lines[curr_line]);
 		lines.erase(lines.begin() + next_line);
 	}
