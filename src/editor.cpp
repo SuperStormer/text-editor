@@ -8,7 +8,6 @@
 #include <iostream>
 #include <memory>
 #include <regex>
-#include <sstream>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -173,6 +172,7 @@ void Editor::handle_ctrl_arrow_down() {
 	}
 }
 void Editor::handle_ctrl_arrow_left() {
+	// if at start of line, move to end of prev line
 	if (col == 1) {
 		if (curr_line > 0) {
 			change_line(-1);
@@ -180,6 +180,7 @@ void Editor::handle_ctrl_arrow_left() {
 		}
 		return;
 	}
+	// move to prev whitespace if found, else move to start of line
 	const std::string& line = lines[curr_line];
 	const size_t pos = line.find_last_of(" \t\n()", col - 2);
 	if (pos != std::string::npos) {
@@ -189,13 +190,14 @@ void Editor::handle_ctrl_arrow_left() {
 	}
 }
 void Editor::handle_ctrl_arrow_right() {
+	// move to next whitespace if found, else move to end of line
 	const std::string& line = lines[curr_line];
 	const size_t pos = line.find_first_of(" \t\n()", col);
 	if (pos != std::string::npos) {
 		col = pos + 1;
 	} else if (col < line.size() + 1) {
 		col = line.size() + 1;
-	} else if (curr_line < lines.size() - 1) {
+	} else if (curr_line < lines.size() - 1) {	// if at end of line, move to start of next line
 		change_line(1);
 		col = 1;
 	}
@@ -236,7 +238,8 @@ void Editor::save() {
 }
 void Editor::cut() {
 	copy();
-	perform_action(Remove(selection_start.line, selection_start.col, clipboard));
+	Position real_selection_start = std::min(selection_start, Position{curr_line, col});
+	perform_action(Remove(real_selection_start.line, real_selection_start.col, clipboard));
 }
 void Editor::copy() {
 	clipboard = {};
@@ -245,15 +248,22 @@ void Editor::copy() {
 	Position selection_end = selection_bounds.second;
 	auto it = lines.begin() + real_selection_start.line;
 	auto end = lines.begin() + selection_end.line;
-	if (it == end) {
+	if (it == end) {  // if only 1 line selection
 		clipboard.emplace_back(it->begin() + real_selection_start.col - 1, it->begin() + selection_end.col - 1);
 	} else {
+		// copy 1st line
 		clipboard.emplace_back(it->begin() + real_selection_start.col - 1, it->end());
 		++it;
-		for (; it < end - 1; ++it) {
+		// copy middle lines
+		for (; it < end; ++it) {
 			clipboard.push_back(*it);
 		}
-		clipboard.emplace_back(it->begin(), it->begin() + selection_end.col);
+		// copy last line
+		if (it->empty()) {
+			clipboard.emplace_back("");
+		} else {
+			clipboard.emplace_back(it->begin(), it->begin() + selection_end.col);
+		}
 	}
 }
 void Editor::paste() {
@@ -309,6 +319,7 @@ void Editor::display() {
 		Position real_selection_start = selection_bounds.first;
 		Position selection_end = selection_bounds.second;
 		std::vector<std::string>::iterator selection_start_line;
+		// make sure selection start/end is onscreen
 		if (selection_start.line >= window_start) {
 			selection_start_line = lines.begin() + real_selection_start.line;
 		} else {
@@ -320,14 +331,14 @@ void Editor::display() {
 		} else {
 			selection_end_line = lines.begin() + end_line;
 		}
-		auto it = lines.begin() + window_start;
-		for (; it < end; ++it) {
-			if (it != lines.begin()) {
+		for (auto start = lines.begin() + window_start, it{start}; it < end; ++it) {
+			if (it != start) {
 				std::cout << '\n';
 			}
 			if (it != selection_start_line && it != selection_end_line) {
 				std::cout << replace_all(*it, "\t", tab_repl);
 			} else if (it == selection_start_line && it == selection_end_line) {
+				// 1-line selection
 				std::string new_str{*it};
 				new_str.insert(real_selection_start.col - 1, highlight_start);
 				if (selection_end.col + highlight_start.length() <= new_str.length()) {
@@ -347,9 +358,8 @@ void Editor::display() {
 			}
 		}
 	} else {
-		auto it = lines.begin() + window_start;
-		for (; it < end; ++it) {
-			if (it != lines.begin()) {
+		for (auto start = lines.begin() + window_start, it{start}; it < end; ++it) {
+			if (it != start) {
 				std::cout << '\n';
 			}
 			std::cout << replace_all(*it, "\t", tab_repl);

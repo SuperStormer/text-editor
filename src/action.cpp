@@ -89,11 +89,7 @@ std::shared_ptr<Action> Add::reverse() {
 Position Remove::operator()(std::vector<std::string>& lines) {
 	auto it = this->lines.begin();
 	// remove the chars from the current line
-	if (col > 0) {
-		lines[line].erase(col - 1, it->size());
-	} else if (col == 1) {
-		lines[line].erase(1, it->size());
-	}
+	lines[line].erase(col - 1, it->size());
 	++it;
 	// remove the next lines
 	const size_t next_line = line + 1;
@@ -103,7 +99,9 @@ Position Remove::operator()(std::vector<std::string>& lines) {
 	}
 	// remove the chars from the last line
 	if (this->lines.size() > 1) {
-		lines[line].append(lines[next_line].substr(it->size()));
+		if (!lines[next_line].empty()) {
+			lines[line].append(lines[next_line].substr(it->size()));
+		}
 		lines.erase(lines.begin() + next_line);
 	}
 	return Position{line, col};
