@@ -464,7 +464,7 @@ std::pair<int, int> Editor::get_terminal_size() {
 	// from https://stackoverflow.com/a/1022961/7941251
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-	return std::pair{w.ws_row, w.ws_col};
+	return {w.ws_row, w.ws_col};
 #elif defined(_Win32)
 	// from https://stackoverflow.com/a/12642749/7941251
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
