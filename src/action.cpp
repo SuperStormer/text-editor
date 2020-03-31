@@ -11,7 +11,7 @@ Position Action::get_end() const {
 	size_t end_line = line;
 	auto it = lines.begin();
 	for (; it < lines.end() - 1; ++it) {
-		end_line++;
+		++end_line;
 	}
 	size_t end_col{0};
 	if (lines.size() > 1) {
@@ -60,7 +60,7 @@ Position Add::operator()(std::vector<std::string>& lines) {
 			suffix = curr_line;
 		}
 		curr_line.insert(0, *it);
-		new_col++;
+		++new_col;
 	} else {
 		if (curr_line.size() > col - 1) {
 			suffix = curr_line.substr(col - 1);
@@ -72,7 +72,7 @@ Position Add::operator()(std::vector<std::string>& lines) {
 	auto i = line + 1;
 	for (; it < this->lines.end(); ++it, ++i) {
 		lines.insert(lines.begin() + i, *it);
-		new_line++;
+		++new_line;
 	}
 	// prepend the last line to the next line
 	if (this->lines.size() > 1) {

@@ -3,7 +3,11 @@ CXXFLAGS = -Wall -Wextra -Wno-switch -std=c++17 -pedantic
 ifdef prod
 	CXXFLAGS += -O3
 else
-	CXXFLAGS += -ggdb3
+	ifdef lint
+		CXXFLAGS += -fsanitize=undefined -fsanitize=address
+	else
+		CXXFLAGS += -ggdb3
+	endif
 endif
 #adapted from from https://stackoverflow.com/a/2908351/7941251
 SRC_FOLDER = ./src

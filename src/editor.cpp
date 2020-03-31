@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -117,16 +118,15 @@ void Editor::handle_modifier_arrow() {
 			handle_shift_arrow();
 			break;
 		case Key::CTRL_ARROW_START:
+			handle_ctrl_arrow();
 			break;
 		case Key::CTRL_SHIFT_ARROW_START:
+			handle_ctrl_shift_arrow();
 			break;
 	}
 }
 void Editor::handle_shift_arrow() {
-	if (!has_selection) {
-		selection_start = {curr_line, col};
-		has_selection = true;
-	}
+	start_selection();
 	switch (get_key()) {
 		case Key::ARROW_UP:
 			handle_arrow_up();
@@ -141,6 +141,68 @@ void Editor::handle_shift_arrow() {
 			handle_arrow_right();
 			break;
 	}
+}
+void Editor::handle_ctrl_arrow() {
+	switch (get_key()) {
+		case Key::ARROW_UP:
+			handle_ctrl_arrow_up();
+			break;
+		case Key::ARROW_DOWN:
+			handle_ctrl_arrow_down();
+			break;
+		case Key::ARROW_LEFT:
+			handle_ctrl_arrow_left();
+			break;
+		case Key::ARROW_RIGHT:
+			handle_ctrl_arrow_right();
+			break;
+	}
+}
+void Editor::handle_ctrl_arrow_up() {
+	if (curr_line > 0) {
+		change_line(-1);
+	}
+	col = 1;
+}
+void Editor::handle_ctrl_arrow_down() {
+	if (curr_line < lines.size() - 1) {
+		change_line(1);
+		col = 1;
+	} else {
+		col = lines[curr_line].size() + 1;
+	}
+}
+void Editor::handle_ctrl_arrow_left() {
+	if (col == 1) {
+		if (curr_line > 0) {
+			change_line(-1);
+			col = lines[curr_line].size() + 1;
+		}
+		return;
+	}
+	const std::string& line = lines[curr_line];
+	const size_t pos = line.find_last_of(" \t\n()", col - 2);
+	if (pos != std::string::npos) {
+		col = pos + 1;
+	} else {
+		col = 1;
+	}
+}
+void Editor::handle_ctrl_arrow_right() {
+	const std::string& line = lines[curr_line];
+	const size_t pos = line.find_first_of(" \t\n()", col);
+	if (pos != std::string::npos) {
+		col = pos + 1;
+	} else if (col < line.size() + 1) {
+		col = line.size() + 1;
+	} else if (curr_line < lines.size() - 1) {
+		change_line(1);
+		col = 1;
+	}
+}
+void Editor::handle_ctrl_shift_arrow() {
+	start_selection();
+	handle_ctrl_arrow();
 }
 void Editor::handle_backspace() {
 	if (col == 1) {
@@ -178,7 +240,7 @@ void Editor::cut() {
 }
 void Editor::copy() {
 	clipboard = {};
-	auto selection_bounds = std::minmax(selection_start, Position{curr_line, col});
+	const std::pair<Position, Position>& selection_bounds = std::minmax(selection_start, Position{curr_line, col});
 	Position real_selection_start = selection_bounds.first;
 	Position selection_end = selection_bounds.second;
 	auto it = lines.begin() + real_selection_start.line;
@@ -243,7 +305,7 @@ void Editor::display() {
 		end = lines.end();
 	}
 	if (has_selection) {
-		auto selection_bounds = std::minmax(selection_start, Position{curr_line, col});
+		const std::pair<Position, Position>& selection_bounds = std::minmax(selection_start, Position{curr_line, col});
 		Position real_selection_start = selection_bounds.first;
 		Position selection_end = selection_bounds.second;
 		std::vector<std::string>::iterator selection_start_line;
@@ -293,7 +355,7 @@ void Editor::display() {
 			std::cout << replace_all(*it, "\t", tab_repl);
 		}
 	}
-	std::string line = lines[curr_line];
+	const std::string& line = lines[curr_line];
 	// fix cols b/c tabs displayed as spaces in output messes up
 	size_t tabs = std::count(line.begin(), line.begin() + col - 1, '\t');
 	std::cout << "\033[" << curr_line - window_start + 1 << ";" << col + tabs * (tab_size - 1) << "f";
@@ -339,6 +401,12 @@ void Editor::push_action(const std::shared_ptr<Action>& action) {
 }
 inline void Editor::clear_undos() {
 	std::stack<std::shared_ptr<Action>>().swap(undos);
+}
+inline void Editor::start_selection() {
+	if (!has_selection) {
+		selection_start = {curr_line, col};
+		has_selection = true;
+	}
 }
 inline void Editor::clear_selection() {
 	has_selection = false;
