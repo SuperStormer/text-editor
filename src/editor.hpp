@@ -78,7 +78,7 @@ class Editor {
    private:
 	size_t window_start{0};
 	size_t curr_line{0};
-	size_t col{1};	// 1-indexed; idk why
+	size_t col{1};	// 1-indexed
 	bool done{false};
 	std::string filename;
 	std::vector<std::string> lines{};
@@ -88,11 +88,12 @@ class Editor {
 	std::chrono::time_point<Clock> action_timer;
 
 	std::vector<std::string> clipboard;
-	Position selection_start;
+	Position selection_mark;
 	bool has_selection{false};
 
 	struct KeyBinds {
-		KeyBinds(std::unordered_map<Key, KeyHandler> keybinds, std::unordered_map<Key, KeyHandler> escape_handlers);
+		KeyBinds(std::unordered_map<Key, KeyHandler> keybinds,
+				 std::unordered_map<Key, KeyHandler> escape_handlers);
 		std::unordered_map<Key, KeyHandler> keybinds;
 		std::unordered_map<Key, KeyHandler> escape_handlers;
 		const static KeyBinds default_binds;

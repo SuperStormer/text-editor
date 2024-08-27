@@ -11,7 +11,7 @@ enum class Key : int {
 	BACKSPACE = 127,
 	ENTER = 13,
 	ESCAPE_START = '\033',
-	// ansi escape codes
+	// ANSI escape codes
 	ARROW_UP = 'A',
 	ARROW_DOWN = 'B',
 	ARROW_RIGHT = 'C',

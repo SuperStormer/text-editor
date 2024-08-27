@@ -1,6 +1,5 @@
 #ifndef ACTION_H
 #define ACTION_H
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,7 +14,8 @@ class Action {
 	virtual Position operator()(std::vector<std::string>& lines) = 0;
 	virtual std::shared_ptr<Action> reverse() = 0;
 	// merges action2 into action1 if adjacent
-	static std::shared_ptr<Action> merge_if_adj(const std::shared_ptr<Action>& action1, const std::shared_ptr<Action>& action2,
+	static std::shared_ptr<Action> merge_if_adj(const std::shared_ptr<Action>& action1,
+												const std::shared_ptr<Action>& action2,
 												const std::vector<std::string>& lines);
 
 	[[nodiscard]] Position get_end() const;

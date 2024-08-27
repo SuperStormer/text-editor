@@ -1,12 +1,11 @@
 #include "action.hpp"
 
 #include <memory>
-#include <stdexcept>
-#include <tuple>
 #include <utility>
 
 #include "position.hpp"
-Action::Action(size_t line, size_t col, std::vector<std::string> lines) : line{line}, col{col}, lines{std::move(lines)} {}
+Action::Action(size_t line, size_t col, std::vector<std::string> lines)
+	: line{line}, col{col}, lines{std::move(lines)} {}
 Position Action::get_end() const {
 	size_t end_line = line;
 	auto it = lines.begin();
@@ -21,9 +20,11 @@ Position Action::get_end() const {
 	}
 	return Position{end_line, end_col};
 }
-std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& action1, const std::shared_ptr<Action>& action2,
+std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& action1,
+											 const std::shared_ptr<Action>& action2,
 											 const std::vector<std::string>& lines) {
-	if (dynamic_cast<Add*>(action1.get()) != nullptr && dynamic_cast<Add*>(action2.get()) != nullptr) {
+	if (dynamic_cast<Add*>(action1.get()) != nullptr &&
+		dynamic_cast<Add*>(action2.get()) != nullptr) {
 		auto end = action1->get_end();
 		if (end.line == action2->line && end.col == action2->col && action2->lines.size() < 2) {
 			auto it = action2->lines.begin();
@@ -34,7 +35,8 @@ std::shared_ptr<Action> Action::merge_if_adj(const std::shared_ptr<Action>& acti
 			}
 			return action1;
 		}
-	} else if (dynamic_cast<Remove*>(action1.get()) != nullptr && dynamic_cast<Remove*>(action2.get()) != nullptr) {
+	} else if (dynamic_cast<Remove*>(action1.get()) != nullptr &&
+			   dynamic_cast<Remove*>(action2.get()) != nullptr) {
 		auto end = action2->get_end();
 		if (end.line == action1->line && end.col == action1->col) {
 			auto it = action1->lines.begin();
@@ -99,7 +101,7 @@ Position Remove::operator()(std::vector<std::string>& lines) {
 	}
 	// remove the chars from the last line
 	if (this->lines.size() > 1) {
-		if (!lines[next_line].empty()) {
+		if (!lines[next_line].empty() && it->size() < lines[next_line].size()) {
 			lines[line].append(lines[next_line].substr(it->size()));
 		}
 		lines.erase(lines.begin() + next_line);
