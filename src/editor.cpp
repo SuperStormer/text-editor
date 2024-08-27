@@ -37,9 +37,10 @@ Editor::~Editor() {
 	while (!actions.empty()) {
 		actions.pop();
 	}
-	std::cout << "\033[2J\033[H";  // clear screen and reset cursor position
+	std::cout << "\033[?1049l";	 // switch back to normal screen buffer
 }
 void Editor::start() {
+	std::cout << "\033[?1049h";	 // switch to alternate screen buffer
 	enable_raw_mode();
 	display();
 	done = false;
@@ -238,34 +239,38 @@ void Editor::save() {
 	}
 }
 void Editor::cut() {
-	copy();
-	Position selection_start = std::min(selection_mark, Position{curr_line, col});
-	perform_action(Remove(selection_start.line, selection_start.col, clipboard));
+	if (has_selection) {
+		copy();
+		Position selection_start = std::min(selection_mark, Position{curr_line, col});
+		perform_action(Remove(selection_start.line, selection_start.col, clipboard));
+	}
 }
 void Editor::copy() {
-	clipboard = {};
-	const std::pair<Position, Position>& selection_bounds =
-		std::minmax(selection_mark, Position{curr_line, col});
-	Position selection_start = selection_bounds.first;
-	Position selection_end = selection_bounds.second;
-	auto it = lines.begin() + selection_start.line;
-	auto end = lines.begin() + selection_end.line;
-	if (it == end) {  // if only 1 line selection
-		clipboard.emplace_back(it->begin() + selection_start.col - 1,
-							   it->begin() + selection_end.col - 1);
-	} else {
-		// copy 1st line
-		clipboard.emplace_back(it->begin() + selection_start.col - 1, it->end());
-		++it;
-		// copy middle lines
-		for (; it < end; ++it) {
-			clipboard.push_back(*it);
-		}
-		// copy last line
-		if (it->empty()) {
-			clipboard.emplace_back("");
+	if (has_selection) {
+		clipboard = {};
+		const std::pair<Position, Position>& selection_bounds =
+			std::minmax(selection_mark, Position{curr_line, col});
+		Position selection_start = selection_bounds.first;
+		Position selection_end = selection_bounds.second;
+		auto it = lines.begin() + selection_start.line;
+		auto end = lines.begin() + selection_end.line;
+		if (it == end) {  // if only 1 line selection
+			clipboard.emplace_back(it->begin() + selection_start.col - 1,
+								   it->begin() + selection_end.col - 1);
 		} else {
-			clipboard.emplace_back(it->begin(), it->begin() + selection_end.col);
+			// copy 1st line
+			clipboard.emplace_back(it->begin() + selection_start.col - 1, it->end());
+			++it;
+			// copy middle lines
+			for (; it < end; ++it) {
+				clipboard.push_back(*it);
+			}
+			// copy last line
+			if (it->empty()) {
+				clipboard.emplace_back("");
+			} else {
+				clipboard.emplace_back(it->begin(), it->begin() + selection_end.col);
+			}
 		}
 	}
 }
@@ -340,6 +345,9 @@ void Editor::display() {
 		}
 
 		for (auto start = lines.begin() + window_start, it{start}; it < end; ++it) {
+			if (it != start) {
+				out << '\n';
+			}
 			std::string new_str{*it};
 			if (it == selection_start_line && it == selection_end_line) {
 				// 1-line selection
@@ -355,12 +363,15 @@ void Editor::display() {
 				new_str.insert(selection_end.col - 1, highlight_end);
 			}
 			out << replace_all(new_str, "\t", tab_repl);
-			out << "\033[K\n";	// clear to end of line
+			out << "\033[K";  // clear to end of line
 		}
 	} else {
 		for (auto start = lines.begin() + window_start, it{start}; it < end; ++it) {
+			if (it != start) {
+				out << '\n';
+			}
 			out << replace_all(*it, "\t", tab_repl);
-			out << "\033[K\n";	// clear to end of line
+			out << "\033[K";  // clear to end of line
 		}
 	}
 	out << "\033[J";  // clear to end of screen
